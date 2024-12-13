@@ -63,13 +63,19 @@ mod tests {
 
     #[test]
     fn length_same() {
-        let output = check_lengths(1, 1);
+        let output = check_lengths(3, 3);
         assert!(output.is_ok());
     }
 
     #[test]
     fn length_different() {
-        let output = check_lengths(1, 2);
+        let output = check_lengths(3, 4);
+        assert!(output.is_err());
+    }
+
+    #[test]
+    fn length_short() {
+        let output = check_lengths(1, 1);
         assert!(output.is_err());
     }
 

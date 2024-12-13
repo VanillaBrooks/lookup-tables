@@ -1,11 +1,17 @@
 // todo: constructors for these instead of default
+// todo: fixed delta search method
 
+/// Linear search to bind the bounding indices. Typically faster for small
+/// (<20) values in the table.
 #[derive(Default)]
 pub struct Linear;
 
 #[derive(Default)]
+/// Binary search to find bounding indices. Useful for large datasets (>20)
 pub struct Binary;
 
+/// Store the last set of bounding indices and learly search from the last known match. Effective
+/// for tables with slowly changing values.
 #[derive(Default)]
 pub struct CachedLinearCell {
     last_lower_idx: std::cell::RefCell<usize>,
@@ -17,6 +23,13 @@ impl CachedLinearCell {
             last_lower_idx: last_index.into(),
         }
     }
+}
+
+/// Determine search method dynamically at runtime
+pub enum Runtime {
+    Linear(Linear),
+    Binary(Binary),
+    CachedLinearCell(CachedLinearCell),
 }
 
 pub trait Search<Indep>
@@ -128,6 +141,19 @@ where
             }
 
             unreachable!()
+        }
+    }
+}
+
+impl<Indep> Search<Indep> for Runtime 
+where
+    Indep: PartialOrd<Indep>,
+{
+    fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
+        match &self {
+            Runtime::Linear(l) => l.search(value, indep_values),
+            Runtime::Binary(b) => b.search(value, indep_values),
+            Runtime::CachedLinearCell(c) => c.search(value, indep_values),
         }
     }
 }
