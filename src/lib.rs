@@ -1,4 +1,5 @@
 mod axis;
+mod bound;
 mod common;
 mod search;
 mod table1d;

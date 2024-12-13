@@ -1,6 +1,7 @@
 use crate::axis;
 use crate::common;
 use crate::search;
+use crate::bound;
 use crate::Error;
 use std::ops::{Add, Div, Mul, Sub};
 
@@ -10,7 +11,7 @@ struct LookupTable1D<Axis: axis::AxisImpl, Dep> {
     search: <Axis as axis::AxisImpl>::Search,
 }
 
-impl<Indep, Search, Dep> LookupTable1D<axis::Axis<Indep, Search>, Dep>
+impl<Indep, Search, LowerBound, UpperBound, Dep> LookupTable1D<axis::Axis<Indep, Search, LowerBound, UpperBound>, Dep>
 where
     Indep: std::cmp::PartialOrd,
 {
@@ -29,7 +30,7 @@ where
     }
 }
 
-impl<Indep, Search, Dep> LookupTable1D<axis::Axis<Indep, Search>, Dep>
+impl<Indep, Search, LowerBound, UpperBound, Dep> LookupTable1D<axis::Axis<Indep, Search, LowerBound, UpperBound>, Dep>
 where
     Search: search::Search<Indep>,
     // TODO: HoldHigh / HoldLow does not require so many strict bounds
@@ -60,18 +61,21 @@ mod tests {
     use super::*;
     const TOL: f64 = 1e-10;
 
+    type AxisInterp = axis::Axis<f64, search::Linear, bound::Interp, bound::Interp>;
+    type Table1DLinearInterp = LookupTable1D<AxisInterp, f64>;
+
     //
     // Table Construction
     //
 
-    fn linear_simple_table() -> LookupTable1D<axis::Axis<f64, search::Linear>, f64> {
+    fn linear_simple_table() -> LookupTable1D<axis::Axis<f64, search::Linear, bound::Interp, bound::Interp>, f64> {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
         let search = search::Linear::default();
         LookupTable1D::new(x, search, y).unwrap()
     }
 
-    fn binary_simple_table() -> LookupTable1D<axis::Axis<f64, search::Binary>, f64> {
+    fn binary_simple_table() -> LookupTable1D<axis::Axis<f64, search::Binary, bound::Interp, bound::Interp>, f64> {
         let x = vec![3., 2., 1., 0.];
         let y = vec![3., 2., 1., 0.];
         let search = search::Binary::default();
@@ -80,7 +84,7 @@ mod tests {
 
     fn cached_linear_cell_simple_table(
         last_index: usize,
-    ) -> LookupTable1D<axis::Axis<f64, search::CachedLinearCell>, f64> {
+    ) -> LookupTable1D<axis::Axis<f64, search::CachedLinearCell, bound::Interp, bound::Interp>, f64> {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
         let search = search::CachedLinearCell::new(last_index);
@@ -96,7 +100,7 @@ mod tests {
         // independent variable has repeating entries which should fail to initialize
         let x = vec![0., 0., 2., 3.];
         let y = vec![0., 1., 2., 3.];
-        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        let output : Result<Table1DLinearInterp, _> = LookupTable1D::new(x, search::Linear::default(), y);
         assert!(output.is_err());
     }
 
@@ -105,7 +109,7 @@ mod tests {
         // independent variable is not monotonically increasing
         let x = vec![0., 1., 0.5, 3.];
         let y = vec![0., 1., 2., 3.];
-        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        let output : Result<Table1DLinearInterp, _>= LookupTable1D::new(x, search::Linear::default(), y);
         assert!(output.is_err());
     }
 
@@ -114,7 +118,7 @@ mod tests {
         // independent variable is not monotonically increasing
         let x = vec![3., 2., 2.5, 0.];
         let y = vec![3., 2., 1., 0.];
-        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        let output : Result<Table1DLinearInterp, _>= LookupTable1D::new(x, search::Linear::default(), y);
         assert!(output.is_err());
     }
 
@@ -122,7 +126,7 @@ mod tests {
     fn construct_table_mismatched_lengths() {
         let x = vec![3., 2., 1.];
         let y = vec![3., 2., 1., 0.];
-        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        let output : Result<Table1DLinearInterp, _>= LookupTable1D::new(x, search::Linear::default(), y);
         assert!(output.is_err());
     }
 
@@ -241,6 +245,7 @@ mod tests {
     //
 
     #[test]
+    /// ensure nalgebra types can be used for computation of the dependent variables
     fn linear_nalgebra_dependent() {
         let x = vec![0., 1., 2., 3.];
         let y = vec![
@@ -250,7 +255,7 @@ mod tests {
             nalgebra::Vector2::new(6., 7.),
         ];
         let search = search::Linear::default();
-        let table = LookupTable1D::new(x, search, y).unwrap();
+        let table : LookupTable1D<axis::Axis<f64, search::Linear, bound::Interp, bound::Interp>, _> = LookupTable1D::new(x, search, y).unwrap();
         let output = table.lookup(&1.5);
         float_eq::assert_float_eq!(output[0], 3.0, abs <= TOL);
         float_eq::assert_float_eq!(output[1], 4.0, abs <= TOL);
