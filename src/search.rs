@@ -145,7 +145,7 @@ where
     }
 }
 
-impl<Indep> Search<Indep> for Runtime 
+impl<Indep> Search<Indep> for Runtime
 where
     Indep: PartialOrd<Indep>,
 {

@@ -1,4 +1,3 @@
-use crate::search;
 use std::marker::PhantomData;
 
 // todo: axis should specify the behavior at the bounds
