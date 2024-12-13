@@ -9,4 +9,5 @@ enum Error {
     NonMonotonicSorting,
     DuplicateEntry,
     IndependentDependentLength,
+    IndependentVariableTooShort,
 }

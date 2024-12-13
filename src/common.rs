@@ -47,10 +47,14 @@ where
 
 pub(crate) fn check_lengths(indep_length: usize, dep_axis_length: usize) -> Result<(), Error> {
     if indep_length != dep_axis_length {
-        Err(Error::IndependentDependentLength)
-    } else {
-        Ok(())
+        return Err(Error::IndependentDependentLength);
     }
+
+    if indep_length < 2 || dep_axis_length < 2 {
+        return Err(Error::IndependentVariableTooShort);
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
