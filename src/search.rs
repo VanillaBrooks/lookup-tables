@@ -1,5 +1,4 @@
 // todo: constructors for these instead of default
-// todo: search should specify the behavior at the bounds
 
 #[derive(Default)]
 pub struct Linear;
@@ -117,7 +116,6 @@ where
             let index_pair = (0, 1);
             *borrow_idx = index_pair.0;
             return index_pair;
-
         } else {
             for idx in last_lower..length {
                 let idx_value = &indep_values[idx];

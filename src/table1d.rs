@@ -1,5 +1,7 @@
 use crate::axis;
+use crate::common;
 use crate::search;
+use crate::Error;
 use std::ops::{Add, Div, Mul, Sub};
 
 struct LookupTable1D<Axis: axis::AxisImpl, Dep> {
@@ -8,10 +10,22 @@ struct LookupTable1D<Axis: axis::AxisImpl, Dep> {
     search: <Axis as axis::AxisImpl>::Search,
 }
 
-impl<Indep, Search, Dep> LookupTable1D<axis::Axis<Indep, Search>, Dep> {
-    pub fn new(indep: Vec<Indep>, search: Search, dep: Vec<Dep>) -> Self {
-        // TODO: length and monotonic checks
-        Self { indep, search, dep }
+impl<Indep, Search, Dep> LookupTable1D<axis::Axis<Indep, Search>, Dep>
+where
+    Indep: std::cmp::PartialOrd,
+{
+    pub fn new(mut indep: Vec<Indep>, search: Search, mut dep: Vec<Dep>) -> Result<Self, Error> {
+        match common::check_independent_variable(indep.as_slice())? {
+            common::IndependentVariableOrdering::MonotonicallyIncreasing => {}
+            common::IndependentVariableOrdering::MonotonicallyDecreasing => {
+                indep.reverse();
+                dep.reverse();
+            }
+        }
+
+        common::check_lengths(indep.len(), dep.len())?;
+
+        Ok(Self { indep, search, dep })
     }
 }
 
@@ -54,14 +68,14 @@ mod tests {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
         let search = search::Linear::default();
-        LookupTable1D::new(x, search, y)
+        LookupTable1D::new(x, search, y).unwrap()
     }
 
     fn binary_simple_table() -> LookupTable1D<axis::Axis<f64, search::Binary>, f64> {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
         let search = search::Binary::default();
-        LookupTable1D::new(x, search, y)
+        LookupTable1D::new(x, search, y).unwrap()
     }
 
     fn cached_linear_cell_simple_table(
@@ -70,7 +84,7 @@ mod tests {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
         let search = search::CachedLinearCell::new(last_index);
-        LookupTable1D::new(x, search, y)
+        LookupTable1D::new(x, search, y).unwrap()
     }
 
     //
