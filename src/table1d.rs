@@ -72,8 +72,8 @@ mod tests {
     }
 
     fn binary_simple_table() -> LookupTable1D<axis::Axis<f64, search::Binary>, f64> {
-        let x = vec![0., 1., 2., 3.];
-        let y = vec![0., 1., 2., 3.];
+        let x = vec![3., 2., 1., 0.];
+        let y = vec![3., 2., 1., 0.];
         let search = search::Binary::default();
         LookupTable1D::new(x, search, y).unwrap()
     }
@@ -85,6 +85,45 @@ mod tests {
         let y = vec![0., 1., 2., 3.];
         let search = search::CachedLinearCell::new(last_index);
         LookupTable1D::new(x, search, y).unwrap()
+    }
+
+    //
+    // Table Construction Tests
+    //
+
+    #[test]
+    fn construct_table_repeated_entries() {
+        // independent variable has repeating entries which should fail to initialize
+        let x = vec![0., 0., 2., 3.];
+        let y = vec![0., 1., 2., 3.];
+        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        assert!(output.is_err());
+    }
+
+    #[test]
+    fn construct_table_non_montonic_increasing() {
+        // independent variable is not monotonically increasing
+        let x = vec![0., 1., 0.5, 3.];
+        let y = vec![0., 1., 2., 3.];
+        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        assert!(output.is_err());
+    }
+
+    #[test]
+    fn construct_table_non_montonic_decreasing() {
+        // independent variable is not monotonically increasing
+        let x = vec![3., 2., 2.5, 0.];
+        let y = vec![3., 2., 1., 0.];
+        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        assert!(output.is_err());
+    }
+
+    #[test]
+    fn construct_table_mismatched_lengths() {
+        let x = vec![3., 2., 1.];
+        let y = vec![3., 2., 1., 0.];
+        let output = LookupTable1D::new(x, search::Linear::default(), y);
+        assert!(output.is_err());
     }
 
     //
