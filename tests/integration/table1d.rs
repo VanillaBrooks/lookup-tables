@@ -13,9 +13,10 @@ struct Inputs1D {
 
 impl Inputs1D {
     fn load() -> Self {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/lookup_table_1d_cases.json");
-    let reader = std::fs::File::open(&path).unwrap();
-    serde_json::from_reader(reader).unwrap()
+        let path =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/lookup_table_1d_cases.json");
+        let reader = std::fs::File::open(&path).unwrap();
+        serde_json::from_reader(reader).unwrap()
     }
 }
 

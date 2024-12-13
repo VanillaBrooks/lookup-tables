@@ -33,7 +33,7 @@ Interpolation search and bounding is configured on a per [`Axis`] basis. An axis
 
 ### Lookup Table 1D With Clamping on Lower Bound
 
-```
+```rust
 use lookup_tables::{Axis, Linear, Clamp, Interp, LookupTable1D};
 use std::f64::consts::PI;
 
@@ -62,5 +62,42 @@ assert!(interpolated_volume == 0.0);
 // out of bounds height interpolates volume linearly
 let interpolated_volume = table.lookup(&10.);
 assert!(interpolated_volume == 18.0);
+```
 
+### Lookup Table 1D With Vector-Valued Dependent Variable
+
+Instead of a table to convert a height measurement to a volume reading, what if we wanted to compute multiple
+properties of our system simultaneously using the same height data? We could construct multiple tables or 
+we could change the dependent variable to an array type meeting the bounds of [`LookupTable1D::lookup`]
+
+```rust
+use lookup_tables::{Axis, Linear, Clamp, Interp, LookupTable1D};
+use nalgebra::Vector2;
+use std::f64::consts::PI;
+
+let radius = 1.0;
+let height_data  = vec![0., 1., 2., 3., 4., 5.];
+// experimentally measured property data of an irregular object at the above heights.
+// the first entry in each index is the same as our volume data above
+let property_data = vec![
+    Vector2::new(0., 0.), 
+    Vector2::new(3., 1.),
+    Vector2::new(5., 2.), 
+    Vector2::new(10.,3.),
+    Vector2::new(12.,4.),
+    Vector2::new(13.,5.)
+];
+
+// Same axis type as above. Contains `f64` data, searched with a linear method, clamped at
+// the lower bound, interpolated at the higher bound.
+type MyAxis = Axis<f64, Linear, Clamp, Interp>;
+
+// lookup table will search through the first independent variable (height) with parameters from `MyAxis`. 
+// Dependent variable returned will be `Vector2`
+type MyTable = LookupTable1D<MyAxis, Vector2<f64>>;
+
+let table = MyTable::new(height_data, Linear::default(), property_data).unwrap();
+
+let interpolated_volume = table.lookup(&2.5);
+assert!(interpolated_volume == Vector2::new(7.5, 2.5));
 ```
