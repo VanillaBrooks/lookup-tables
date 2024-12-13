@@ -11,11 +11,7 @@ struct LookupTable1D<Axis: axis::AxisImpl, Dep> {
 impl<Indep, Search, Dep> LookupTable1D<axis::Axis<Indep, Search>, Dep> {
     pub fn new(indep: Vec<Indep>, search: Search, dep: Vec<Dep>) -> Self {
         // TODO: length and monotonic checks
-        Self {
-            indep,
-            search,
-            dep
-        }
+        Self { indep, search, dep }
     }
 }
 
@@ -50,6 +46,10 @@ mod tests {
     use super::*;
     const TOL: f64 = 1e-10;
 
+    //
+    // Table Construction
+    //
+
     fn linear_simple_table() -> LookupTable1D<axis::Axis<f64, search::Linear>, f64> {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
@@ -57,11 +57,38 @@ mod tests {
         LookupTable1D::new(x, search, y)
     }
 
+    fn binary_simple_table() -> LookupTable1D<axis::Axis<f64, search::Binary>, f64> {
+        let x = vec![0., 1., 2., 3.];
+        let y = vec![0., 1., 2., 3.];
+        let search = search::Binary::default();
+        LookupTable1D::new(x, search, y)
+    }
+
+    fn cached_linear_cell_simple_table(
+        last_index: usize,
+    ) -> LookupTable1D<axis::Axis<f64, search::CachedLinearCell>, f64> {
+        let x = vec![0., 1., 2., 3.];
+        let y = vec![0., 1., 2., 3.];
+        let search = search::CachedLinearCell::new(last_index);
+        LookupTable1D::new(x, search, y)
+    }
+
+    //
+    // Linear Tests
+    //
+
     #[test]
     fn linear_1() {
         let table = linear_simple_table();
         let output = table.lookup(&0.5);
-        float_eq::float_eq!(output, 0.5, abs <= TOL);
+        float_eq::assert_float_eq!(output, 0.5, abs <= TOL);
+    }
+
+    #[test]
+    fn linear_2() {
+        let table = linear_simple_table();
+        let output = table.lookup(&3.2);
+        float_eq::assert_float_eq!(output, 3.2, abs <= TOL);
     }
 
     #[test]
@@ -69,7 +96,7 @@ mod tests {
         let table = linear_simple_table();
         let output = table.lookup(&-1.0);
 
-        float_eq::float_eq!(output, 0.5, abs <= TOL);
+        float_eq::assert_float_eq!(output, -1.0, abs <= TOL);
     }
 
     #[test]
@@ -77,6 +104,82 @@ mod tests {
         let table = linear_simple_table();
         let output = table.lookup(&100.0);
 
-        float_eq::float_eq!(output, 0.5, abs <= TOL);
+        float_eq::assert_float_eq!(output, 100.0, abs <= TOL);
+    }
+
+    //
+    // Binary Tests
+    //
+
+    #[test]
+    fn binary_1() {
+        let table = binary_simple_table();
+        let output = table.lookup(&0.5);
+        float_eq::assert_float_eq!(output, 0.5, abs <= TOL);
+    }
+
+    #[test]
+    fn binary_2() {
+        let table = binary_simple_table();
+        let output = table.lookup(&3.2);
+        float_eq::assert_float_eq!(output, 3.2, abs <= TOL);
+    }
+
+    #[test]
+    fn binary_lower_oob() {
+        let table = binary_simple_table();
+        let output = table.lookup(&-1.0);
+
+        float_eq::assert_float_eq!(output, -1.0, abs <= TOL);
+    }
+
+    #[test]
+    fn binary_higher_oob() {
+        let table = binary_simple_table();
+        let output = table.lookup(&100.0);
+
+        float_eq::assert_float_eq!(output, 100.0, abs <= TOL);
+    }
+
+    //
+    // CachedLinearCell Tests
+    //
+
+    #[test]
+    fn cached_linear_cell_1() {
+        for last_index in 0..4 {
+            let table = cached_linear_cell_simple_table(last_index);
+            let output = table.lookup(&0.5);
+            float_eq::assert_float_eq!(output, 0.5, abs <= TOL);
+        }
+    }
+
+    #[test]
+    fn cached_linear_cell_2() {
+        for last_index in 0..4 {
+            let table = cached_linear_cell_simple_table(last_index);
+            let output = table.lookup(&3.2);
+            float_eq::assert_float_eq!(output, 3.2, abs <= TOL);
+        }
+    }
+
+    #[test]
+    fn cached_linear_cell_lower_oob() {
+        for last_index in 0..4 {
+            let table = cached_linear_cell_simple_table(last_index);
+            let output = table.lookup(&-1.0);
+
+            float_eq::assert_float_eq!(output, -1.0, abs <= TOL);
+        }
+    }
+
+    #[test]
+    fn cached_linear_cell_higher_oob() {
+        for last_index in 0..4 {
+            let table = cached_linear_cell_simple_table(last_index);
+            let output = table.lookup(&100.0);
+
+            float_eq::assert_float_eq!(output, 100.0, abs <= TOL);
+        }
     }
 }
