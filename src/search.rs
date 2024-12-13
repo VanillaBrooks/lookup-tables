@@ -50,9 +50,13 @@ fn inbounds_pair_from_lower(low_idx: usize, indep_length: usize) -> (usize, usiz
     (low_idx, high_idx)
 }
 
-fn inbounds_pair_from_higher(high_idx: usize) -> (usize, usize) {
+fn inbounds_pair_from_higher(high_idx: usize, length: usize) -> (usize, usize) {
     // cap the high index to be 1 to ensure the lower index is inbounds at zero
     let high_idx = std::cmp::max(1, high_idx);
+    // ensure the high index is not greater than length -1, which can happen with binary search
+    // TODO: const param here to decide if we need to check this, since we dont for the other cases
+    let high_idx = std::cmp::min(high_idx, length - 1);
+
     let low_idx = high_idx - 1;
 
     (low_idx, high_idx)
@@ -65,10 +69,10 @@ where
     fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
         let length = indep_values.len();
 
-        if let Some(low_idx) = indep_values.iter().position(|v| v > value) {
+        if let Some(high_idx) = indep_values.iter().position(|v| v > value) {
             // grab the index pair associated with this, paying close attention to not go out of
             // bounds
-            inbounds_pair_from_lower(low_idx, length)
+            inbounds_pair_from_higher(high_idx, length)
         } else {
             // we hit the max value in the dataset and `value` was bigger. set the high
             // index equal to the last value
@@ -90,7 +94,7 @@ where
 
         match indep_values.binary_search_by(f) {
             Ok(matching_index) => inbounds_pair_from_lower(matching_index, length),
-            Err(low_idx) => inbounds_pair_from_lower(low_idx, length),
+            Err(high_idx) => inbounds_pair_from_higher(high_idx, length),
         }
     }
 }
@@ -112,35 +116,33 @@ where
             // we need to search the lower portion of the dataset since our value is smaller than
             // the last index
 
-            for idx in last_lower..0 {
-                dbg!("here");
+            for idx in (0..last_lower).rev() {
                 let idx_value = &indep_values[idx];
                 if idx_value < value {
                     // we are now at an index that is above the value, we return out
-                    let index_pair = inbounds_pair_from_higher(idx);
+                    let index_pair = inbounds_pair_from_lower(idx, length);
                     *borrow_idx = index_pair.0;
                     return index_pair;
                 }
             }
 
-            // TODO: not sure if this is a band aid on larger problem, but we can reach this code
-            // if the last lower index was 0. The for loop above will not run, and we need to
-            // return something
             let index_pair = (0, 1);
             *borrow_idx = index_pair.0;
             return index_pair;
         } else {
             for idx in last_lower..length {
                 let idx_value = &indep_values[idx];
-                if idx_value < value {
+                if idx_value > value {
                     // we are now at an index that is above the value, we return out
-                    let index_pair = inbounds_pair_from_higher(idx);
+                    let index_pair = inbounds_pair_from_higher(idx, length);
                     *borrow_idx = index_pair.0;
                     return index_pair;
                 }
             }
 
-            unreachable!()
+            let index_pair = (length - 2, length - 1);
+            *borrow_idx = index_pair.0;
+            return index_pair;
         }
     }
 }
@@ -154,6 +156,122 @@ where
             Runtime::Linear(l) => l.search(value, indep_values),
             Runtime::Binary(b) => b.search(value, indep_values),
             Runtime::CachedLinearCell(c) => c.search(value, indep_values),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn data() -> Vec<usize> {
+        vec![0, 2, 4, 6, 8, 10]
+    }
+
+    //
+    // Linear Tests
+    //
+
+    #[test]
+    /// check close to the bottom of the table bounds, but still in
+    fn linear_low() {
+        let linear = Linear::default();
+        let x = data();
+        let output = linear.search(&1, x.as_slice());
+        dbg!(&output);
+        assert!(output.0 == 0);
+        assert!(output.1 == 1);
+    }
+
+    #[test]
+    /// check close to the top of the table bounds, but still in
+    fn linear_high() {
+        let linear = Linear::default();
+        let x = data();
+        let output = linear.search(&9, x.as_slice());
+        assert!(output.0 == 4);
+        assert!(output.1 == 5);
+    }
+
+    //
+    // Binary Tests
+    //
+
+    #[test]
+    /// check close to the bottom of the table bounds, but still in
+    fn binary_low() {
+        let binary = Binary::default();
+        let x = data();
+        let output = binary.search(&1, x.as_slice());
+        dbg!(&output);
+        assert!(output.0 == 0);
+        assert!(output.1 == 1);
+    }
+
+    #[test]
+    /// check close to the bottom of the table bounds, but still in
+    fn binary_inbounds() {
+        let binary = Binary::default();
+        let x = data();
+        let output = binary.search(&5, x.as_slice());
+        dbg!(&output);
+        assert!(output.0 == 2);
+        assert!(output.1 == 3);
+    }
+
+    #[test]
+    /// check close to the top of the table bounds, but still in
+    fn binary_high() {
+        let binary = Binary::default();
+        let x = data();
+        let output = binary.search(&9, x.as_slice());
+        assert!(output.0 == 4);
+        assert!(output.1 == 5);
+    }
+
+    //
+    // Cached Linear Tests
+    //
+
+    #[test]
+    /// check close to the bottom of the table bounds, but still in
+    fn cached_linear_low() {
+        for starting_index in 0..6 {
+            dbg!(starting_index);
+            let cached_linear = CachedLinearCell::new(starting_index);
+            let x = data();
+            let output = cached_linear.search(&1, x.as_slice());
+            dbg!(&output);
+            assert!(output.0 == 0);
+            assert!(output.1 == 1);
+        }
+    }
+
+    #[test]
+    /// check close to the bottom of the table bounds, but still in
+    fn cached_linear_inbounds() {
+        for starting_index in 0..6 {
+            dbg!(starting_index);
+            let cached_linear = CachedLinearCell::new(starting_index);
+            let x = data();
+            let output = cached_linear.search(&5, x.as_slice());
+            dbg!(&output);
+            assert!(output.0 == 2);
+            assert!(output.1 == 3);
+        }
+    }
+
+    #[test]
+    /// check close to the top of the table bounds, but still in
+    fn cached_linear_high() {
+        for starting_index in 0..6 {
+            dbg!(starting_index);
+            let cached_linear = CachedLinearCell::new(starting_index);
+            let x = data();
+            let output = cached_linear.search(&9, x.as_slice());
+            dbg!(output);
+            assert!(output.0 == 4);
+            assert!(output.1 == 5);
         }
     }
 }
