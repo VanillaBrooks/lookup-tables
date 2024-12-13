@@ -1,7 +1,7 @@
 // todo: constructors for these instead of default
 // todo: fixed delta search method
 
-/// Linear search to bind the bounding indices. Typically faster for small
+/// Linear search to find the bounding indices. Typically faster for small
 /// (<20) values in the table.
 #[derive(Default)]
 pub struct Linear;
@@ -26,7 +26,7 @@ impl CachedLinearCell {
 }
 
 /// Determine search method dynamically at runtime
-pub enum Runtime {
+pub enum RuntimeSearch {
     Linear(Linear),
     Binary(Binary),
     CachedLinearCell(CachedLinearCell),
@@ -147,15 +147,15 @@ where
     }
 }
 
-impl<Indep> Search<Indep> for Runtime
+impl<Indep> Search<Indep> for RuntimeSearch
 where
     Indep: PartialOrd<Indep>,
 {
     fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
         match &self {
-            Runtime::Linear(l) => l.search(value, indep_values),
-            Runtime::Binary(b) => b.search(value, indep_values),
-            Runtime::CachedLinearCell(c) => c.search(value, indep_values),
+            RuntimeSearch::Linear(l) => l.search(value, indep_values),
+            RuntimeSearch::Binary(b) => b.search(value, indep_values),
+            RuntimeSearch::CachedLinearCell(c) => c.search(value, indep_values),
         }
     }
 }

@@ -58,8 +58,6 @@ where
         let y_l: Dep = self.dep[idx_l];
         let y_h: Dep = self.dep[idx_h];
 
-        dbg!(idx_l, idx_h, x_l, x_h);
-
         // bound x acording to the axis we are interpolating on
         // unwrap is safe here as we have checked its at least length 2
         let x = LowerBound::lower_bound(*x, *self.indep.first().unwrap());
