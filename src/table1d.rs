@@ -235,4 +235,24 @@ mod tests {
             float_eq::assert_float_eq!(output, 100.0, abs <= TOL);
         }
     }
+
+    //
+    // vector valued dependent variables
+    //
+
+    #[test]
+    fn linear_nalgebra_dependent() {
+        let x = vec![0., 1., 2., 3.];
+        let y = vec![
+            nalgebra::Vector2::new(0., 1.),
+            nalgebra::Vector2::new(2., 3.),
+            nalgebra::Vector2::new(4., 5.),
+            nalgebra::Vector2::new(6., 7.),
+        ];
+        let search = search::Linear::default();
+        let table = LookupTable1D::new(x, search, y).unwrap();
+        let output = table.lookup(&1.5);
+        float_eq::assert_float_eq!(output[0], 3.0, abs <= TOL);
+        float_eq::assert_float_eq!(output[1], 4.0, abs <= TOL);
+    }
 }

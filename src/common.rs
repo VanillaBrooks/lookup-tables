@@ -15,17 +15,18 @@ pub(crate) fn check_independent_variable<Indep>(
 where
     Indep: std::cmp::PartialOrd,
 {
-    // if the independent variable is not monotonically increasing...
+    check_repeat_entries(indep)?;
+
+    // check if mono increasing
     if indep.is_sorted() {
-        check_repeat_entries(indep)?;
         return Ok(IndependentVariableOrdering::MonotonicallyIncreasing);
     } else {
-        // if it is monotonically decreasing, just reverse the data so our lookups can treat
-        // it as monotonically increasing
+        // check if monotonically decreasing
         if indep.is_sorted_by(|l, r| r < l) {
-            check_repeat_entries(indep)?;
             return Ok(IndependentVariableOrdering::MonotonicallyDecreasing);
-        } else {
+        }
+        // its neither increasing or decreasing, there is an error
+        else {
             return Err(Error::NonMonotonicSorting);
             //
         }
