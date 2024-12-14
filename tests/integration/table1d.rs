@@ -44,7 +44,7 @@ fn linear() {
         for (input, output) in case.input.into_iter().zip(case.output.into_iter()) {
             println!("evaluating case input {input}");
 
-            let linear_output = linear_table.lookup(&input);
+            let linear_output = linear_table.lookup(input);
             float_eq::assert_float_eq!(linear_output, output, abs <= TOL);
         }
     }
@@ -66,7 +66,7 @@ fn binary() {
         for (input, output) in case.input.into_iter().zip(case.output.into_iter()) {
             println!("evaluating case input {input}");
 
-            let table_output = binary_table.lookup(&input);
+            let table_output = binary_table.lookup(input);
             float_eq::assert_float_eq!(table_output, output, abs <= TOL);
         }
     }
@@ -88,7 +88,7 @@ fn cached_linear_cell() {
         for (input, output) in case.input.into_iter().zip(case.output.into_iter()) {
             println!("evaluating case input {input}");
 
-            let table_output = cached_linear_table.lookup(&input);
+            let table_output = cached_linear_table.lookup(input);
             float_eq::assert_float_eq!(table_output, output, abs <= TOL);
         }
     }
