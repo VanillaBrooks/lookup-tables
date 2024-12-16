@@ -38,7 +38,7 @@ where
 {
     /// Search through a list of values, return the upper and lower indices that bound a given
     /// value
-    fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize);
+    fn search(&self, value: Indep, indep_values: &[Indep]) -> (usize, usize);
 }
 
 fn inbounds_pair_from_lower(low_idx: usize, indep_length: usize) -> (usize, usize) {
@@ -66,10 +66,10 @@ impl<Indep> Search<Indep> for Linear
 where
     Indep: std::cmp::PartialOrd,
 {
-    fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
+    fn search(&self, value: Indep, indep_values: &[Indep]) -> (usize, usize) {
         let length = indep_values.len();
 
-        if let Some(high_idx) = indep_values.iter().position(|v| v > value) {
+        if let Some(high_idx) = indep_values.iter().position(|v| v > &value) {
             // grab the index pair associated with this, paying close attention to not go out of
             // bounds
             inbounds_pair_from_higher(high_idx, length)
@@ -88,9 +88,9 @@ impl<Indep> Search<Indep> for Binary
 where
     Indep: PartialOrd<Indep>,
 {
-    fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
+    fn search(&self, value: Indep, indep_values: &[Indep]) -> (usize, usize) {
         let length = indep_values.len();
-        let f = |v: &Indep| v.partial_cmp(value).unwrap();
+        let f = |v: &Indep| v.partial_cmp(&value).unwrap();
 
         match indep_values.binary_search_by(f) {
             Ok(matching_index) => inbounds_pair_from_lower(matching_index, length),
@@ -103,7 +103,7 @@ impl<Indep> Search<Indep> for CachedLinearCell
 where
     Indep: PartialOrd<Indep>,
 {
-    fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
+    fn search(&self, value: Indep, indep_values: &[Indep]) -> (usize, usize) {
         let mut borrow_idx: std::cell::RefMut<'_, usize> = self
             .last_lower_idx
             .try_borrow_mut()
@@ -112,13 +112,13 @@ where
 
         let length = indep_values.len();
 
-        if &indep_values[last_lower] >= value {
+        if indep_values[last_lower] >= value {
             // we need to search the lower portion of the dataset since our value is smaller than
             // the last index
 
             for idx in (0..last_lower).rev() {
                 let idx_value = &indep_values[idx];
-                if idx_value < value {
+                if idx_value < &value {
                     // we are now at an index that is above the value, we return out
                     let index_pair = inbounds_pair_from_lower(idx, length);
                     *borrow_idx = index_pair.0;
@@ -132,7 +132,7 @@ where
         } else {
             for idx in last_lower..length {
                 let idx_value = &indep_values[idx];
-                if idx_value > value {
+                if idx_value > &value {
                     // we are now at an index that is above the value, we return out
                     let index_pair = inbounds_pair_from_higher(idx, length);
                     *borrow_idx = index_pair.0;
@@ -151,7 +151,7 @@ impl<Indep> Search<Indep> for RuntimeSearch
 where
     Indep: PartialOrd<Indep>,
 {
-    fn search(&self, value: &Indep, indep_values: &[Indep]) -> (usize, usize) {
+    fn search(&self, value: Indep, indep_values: &[Indep]) -> (usize, usize) {
         match &self {
             RuntimeSearch::Linear(l) => l.search(value, indep_values),
             RuntimeSearch::Binary(b) => b.search(value, indep_values),
@@ -177,7 +177,7 @@ mod tests {
     fn linear_low() {
         let linear = Linear::default();
         let x = data();
-        let output = linear.search(&1, x.as_slice());
+        let output = linear.search(1, x.as_slice());
         dbg!(&output);
         assert!(output.0 == 0);
         assert!(output.1 == 1);
@@ -188,7 +188,7 @@ mod tests {
     fn linear_high() {
         let linear = Linear::default();
         let x = data();
-        let output = linear.search(&9, x.as_slice());
+        let output = linear.search(9, x.as_slice());
         assert!(output.0 == 4);
         assert!(output.1 == 5);
     }
@@ -202,7 +202,7 @@ mod tests {
     fn binary_low() {
         let binary = Binary::default();
         let x = data();
-        let output = binary.search(&1, x.as_slice());
+        let output = binary.search(1, x.as_slice());
         dbg!(&output);
         assert!(output.0 == 0);
         assert!(output.1 == 1);
@@ -213,7 +213,7 @@ mod tests {
     fn binary_inbounds() {
         let binary = Binary::default();
         let x = data();
-        let output = binary.search(&5, x.as_slice());
+        let output = binary.search(5, x.as_slice());
         dbg!(&output);
         assert!(output.0 == 2);
         assert!(output.1 == 3);
@@ -224,7 +224,7 @@ mod tests {
     fn binary_high() {
         let binary = Binary::default();
         let x = data();
-        let output = binary.search(&9, x.as_slice());
+        let output = binary.search(9, x.as_slice());
         assert!(output.0 == 4);
         assert!(output.1 == 5);
     }
@@ -240,7 +240,7 @@ mod tests {
             dbg!(starting_index);
             let cached_linear = CachedLinearCell::new(starting_index);
             let x = data();
-            let output = cached_linear.search(&1, x.as_slice());
+            let output = cached_linear.search(1, x.as_slice());
             dbg!(&output);
             assert!(output.0 == 0);
             assert!(output.1 == 1);
@@ -254,7 +254,7 @@ mod tests {
             dbg!(starting_index);
             let cached_linear = CachedLinearCell::new(starting_index);
             let x = data();
-            let output = cached_linear.search(&5, x.as_slice());
+            let output = cached_linear.search(5, x.as_slice());
             dbg!(&output);
             assert!(output.0 == 2);
             assert!(output.1 == 3);
@@ -268,7 +268,7 @@ mod tests {
             dbg!(starting_index);
             let cached_linear = CachedLinearCell::new(starting_index);
             let x = data();
-            let output = cached_linear.search(&9, x.as_slice());
+            let output = cached_linear.search(9, x.as_slice());
             dbg!(output);
             assert!(output.0 == 4);
             assert!(output.1 == 5);
