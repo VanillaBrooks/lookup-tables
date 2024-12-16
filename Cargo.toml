@@ -2,6 +2,8 @@
 name = "lookup-tables"
 version = "0.1.0"
 edition = "2021"
+description = "High performance & compile-time customizable lookup tables"
+license = "GPL-3.0"
 
 [dependencies]
 ndarray = { version = "0.16.1", optional = true }
