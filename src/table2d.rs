@@ -7,6 +7,9 @@ use std::ops::{Add, Div, Mul, Sub};
 
 use ndarray::Array2;
 
+/// Two dimensional lookup table - approximate `f(x, y)` given `x` and `y`
+///
+/// See [crate level](crate) documentation for more examples and usage
 pub struct LookupTable2D<Axis1, Axis2, Dep>
 where
     Axis1: axis::AxisImpl,
@@ -29,6 +32,61 @@ where
     Indep1: std::cmp::PartialOrd,
     Indep2: std::cmp::PartialOrd,
 {
+    /// Construct a new lookup table
+    ///
+    /// # Args
+    ///
+    /// ## `indep1`
+    ///
+    /// List of independent variables (`x` in `f(x, y)`). `Indep1` is generally `f64` or `f32`.
+    ///
+    /// ## `search1`
+    ///
+    /// Search method for `indep1`. Implements the [Search](crate::search::Search) trait.
+    ///
+    ///
+    /// ## `indep2`
+    ///
+    /// List of independent variables (`y` in `f(x, y)`). `Indep2` is generally `f64` or `f32`.
+    ///
+    /// ## `search2`
+    ///
+    /// Search method for `indep2`. Implements the [Search](crate::search::Search) trait.
+    ///
+    /// ## `dep`
+    ///
+    /// List of dependent variables (`f(x, y)`). `Dep` is generally `f64`, `f32`, some vector valued `nalgebra::base::Vector`, or
+    /// [ndarray::Array1]
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use lookup_tables::{Linear, Binary, Axis, Interp, Clamp, LookupTable2D};
+    ///
+    /// // independent variable axis of `f64`s. Searching the axis will be done with a brute force
+    /// // linear search (good for < 20 values). No clamping at the bounds of the table
+    /// type LinearInterpAxis = Axis<f64, Linear, Interp, Interp>;
+    ///
+    /// // independent variable axis of `f64`s. Searching the axis will be done with binary search.
+    /// // Clamping at the upper bound, interpolation at the lower bound.
+    /// type BinaryClampLowerAxis = Axis<f64, Binary, Clamp, Interp>;
+    ///
+    /// let x = vec![1., 2., 3.];
+    /// let y = vec![10., 20., 30.];
+    /// // f(x,y) = x + y
+    /// let f = |x, y| x + y;
+    /// let mut f_matrix = ndarray::Array2::zeros((x.len(), y.len()));
+    ///
+    /// //populate the f matrix with function evaluations
+    /// for i in 0..x.len() {
+    ///     for j in 0..y.len() {
+    ///         f_matrix[[i,j]] = f(x[i], y[j]);
+    ///     }
+    /// }
+    ///
+    /// // construct the 2d lookup table
+    /// let table = LookupTable2D::<LinearInterpAxis, BinaryClampLowerAxis, f64>::new(x, Linear::new(), y, Binary::new(), f_matrix).unwrap();
+    /// ```
     pub fn new(
         mut indep1: Vec<Indep1>,
         search1: Search1,
@@ -41,7 +99,6 @@ where
             common::IndependentVariableOrdering::MonotonicallyDecreasing => {
                 indep1.reverse();
                 dep.invert_axis(ndarray::Axis(0));
-                dbg!("reversing");
             }
         }
 
@@ -50,7 +107,6 @@ where
             common::IndependentVariableOrdering::MonotonicallyDecreasing => {
                 indep2.reverse();
                 dep.invert_axis(ndarray::Axis(1));
-                dbg!("reversing");
             }
         }
 

@@ -1,9 +1,62 @@
+/// Interpolate out of bounds using the first / last two grid points.
+///
+/// # Example
+///
+/// ```
+/// use lookup_tables::{Axis, Binary, Interp, LookupTable1D};
+///
+/// // independent variable is `f64`. Searching along the axis uses a binary search method.
+/// // interpolation is performed at the far edges of the independent variable.
+/// type InterpAxis = Axis<f64, Binary, Interp, Interp>;
+///
+/// let x = vec![0., 5.0, 10.];
+/// // y = 2.0 * x
+/// let y = x.iter().map(|value| 2.0 * value).collect();
+///
+/// let table = LookupTable1D::<InterpAxis, f64>::new(x, Binary::new(), y).unwrap();
+///
+/// // inbounds is what you expect
+/// assert!(table.lookup(5.) == 10.);
+///
+/// // lower bound is interpolated on. using `f(0.0) = 0` and `f(5.0) = 10.0`
+/// assert!(table.lookup(-10.) == -20.); // lower bound is interpolated on. using `f(5.0) = 10.` and `f(10.) = 20.0`
+/// assert!(table.lookup(20.) == 40.);
+/// ```
 pub struct Interp;
 
+/// Clamp interpolation results to the value of the independent variable at the bounds.
+///
+/// # Example
+///
+/// ```
+/// use lookup_tables::{Axis, Linear, Clamp, LookupTable1D};
+///
+/// // independent variable is `f64`. Searching along the axis uses a linear method.
+/// // clamping is performed at both ends of the axis.
+/// type ClampedAxis = Axis<f64, Linear, Clamp, Clamp>;
+///
+/// let x = vec![0., 5.0, 10.];
+/// // y = 2.0 * x
+/// let y = x.iter().map(|value| 2.0 * value).collect();
+///
+/// let table = LookupTable1D::<ClampedAxis, f64>::new(x, Linear::new(), y).unwrap();
+///
+/// // inbounds is what you expect
+/// assert!(table.lookup(5.) == 10.);
+///
+/// // lower bound is clamped, saturates to f(x) = 2 * 0 = 0
+/// assert!(table.lookup(-10.) == 0.);
+/// // upper bound is clamped, saturates to f(x) = 2 * 10 = 20
+/// assert!(table.lookup(20.) == 20.);
+/// ```
 pub struct Clamp;
 
+/// Defines how to treat a lookup of an independent variable its upper and lower bounds.
 pub trait Bound<Indep> {
+    /// Behavior at the upper bound.
     fn upper_bound(indep: Indep, upper_bound: Indep) -> Indep;
+
+    /// Behavior at the lower bound.
     fn lower_bound(indep: Indep, lower_bound: Indep) -> Indep;
 }
 
