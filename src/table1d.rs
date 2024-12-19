@@ -5,6 +5,50 @@ use crate::search;
 use crate::Error;
 use std::ops::{Add, Div, Mul, Sub};
 
+/// One dimensional lookup table - approximate `f(x)` given `x`
+///
+/// See [crate level](crate) documentation for more examples and usage
+///
+/// ## Example
+///
+/// Approximate `f(x) = x^2` with `x` values from `0` to `10`:
+///
+///
+/// ```
+/// use lookup_tables::{Axis, Binary, Clamp, LookupTable1D};
+///
+/// // The function we are approximating. This function may be
+/// // expensive to evaluate, necessitating the use of a lookup table
+/// // to approximate it
+/// fn f(x: f64) -> f64 {
+///     x.powf(2.)
+/// }
+///
+/// // for the only axis of the lookup table (its 1d), we do binary search to find the bounding
+/// // grid points, and we clamp at the ends
+/// type BinaryClampAxis = Axis<f64, Binary, Clamp, Clamp>;
+///
+/// let x_min = 0.0;
+/// let x_max = 10.0;
+/// let num_points = 100;
+///
+/// // generate a uniform stencil of x points to evaluate `f` at
+/// let x = ndarray::Array1::linspace(x_min, x_max, num_points).to_vec();
+/// // evaluate `f` at every `x` point
+/// let y = x.iter().copied().map(f).collect();
+///
+/// // construct the table with a binary search method
+/// let table = LookupTable1D::<BinaryClampAxis, f64>::new(x, Binary::default(), y).unwrap();
+///
+///
+/// // out of bounds lookups are clamped to the range of x values
+/// assert!(table.lookup(-10.) == f(x_min));
+/// assert!(table.lookup(200.) == f(x_max));
+///
+/// // closely approximates `f` with interpolation
+/// assert!((table.lookup(3.6) - f(3.6)).abs() < 1e-2);
+/// ```
+///
 pub struct LookupTable1D<Axis: axis::AxisImpl, Dep> {
     indep: Vec<<Axis as axis::AxisImpl>::Indep>,
     dep: Vec<Dep>,
@@ -16,6 +60,39 @@ impl<Indep, Search, LowerBound, UpperBound, Dep>
 where
     Indep: std::cmp::PartialOrd,
 {
+    /// Construct a new lookup table
+    ///
+    /// # Args
+    ///
+    /// ## `indep`
+    ///
+    /// List of independent variables (`x` in `f(x)`). `Indep` is generally `f64` or `f32`.
+    ///
+    /// ## `search`
+    ///
+    /// Search method for `indep`. Implements the [Search](crate::search::Search) trait.
+    ///
+    /// ## `dep`
+    ///
+    /// List of dependent variables (`f(x)`). `Dep` is generally `f64`, `f32`, some vector valued `nalgebra::base::Vector`, or
+    /// [ndarray::Array1]
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use lookup_tables::{Linear, Axis, Interp, LookupTable1D};
+    ///
+    /// // independent variable axis of `f64`s. Searching the axis will be done with a brute force
+    /// // linear search (good for < 20 values). No clamping at the bounds of the table
+    /// type LinearInterpAxis = Axis<f64, Linear, Interp, Interp>;
+    ///
+    /// let x = vec![1., 2., 3.];
+    /// let y = x.iter().map(|value| value * 10.).collect();
+    ///
+    ///
+    /// // lookup table with linear searching, using `x` and `y = f(x)`
+    /// let table = LookupTable1D::<LinearInterpAxis, f64>::new(x, Linear::new(), y);
+    /// ```
     pub fn new(mut indep: Vec<Indep>, search: Search, mut dep: Vec<Dep>) -> Result<Self, Error> {
         match common::check_independent_variable(indep.as_slice())? {
             common::IndependentVariableOrdering::MonotonicallyIncreasing => {}

@@ -9,7 +9,7 @@ mod table1d;
 #[cfg(feature = "ndarray")]
 mod table2d;
 
-pub use axis::Axis;
+pub use axis::{Axis, AxisImpl};
 pub use bound::{Bound, Clamp, Interp};
 pub use search::{Binary, CachedLinearCell, Linear, RuntimeSearch, Search};
 pub use table1d::LookupTable1D;

@@ -17,7 +17,7 @@ High performance & compile-time customizable lookup tables
 
 ### Searching Methods
 
-* [`Linear`] - Lineary search to find bounding indicies. Typically faster for small (`< 20`) values in a table
+* [`Linear`] - Linear search to find bounding indicies. Typically faster for small (`< 20`) values in a table
 * [`Binary`] - Binary search for bounding indices. Useful for large datasets
 * [`CachedLinearCell`] - Linear searching with a cached last-used index. Effective for large datasets with slowly changing lookup values
 * [`RuntimeSearch`] - Use any search method, configured at runtime

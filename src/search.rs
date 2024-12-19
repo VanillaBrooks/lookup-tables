@@ -6,9 +6,23 @@
 #[derive(Default)]
 pub struct Linear;
 
+impl Linear {
+    /// Construct a new linear search method
+    pub fn new() -> Self {
+        Linear
+    }
+}
+
 #[derive(Default)]
-/// Binary search to find bounding indices. Useful for large datasets (>20)
+/// Binary search to find bounding indices. Useful for large datasets (>20).
 pub struct Binary;
+
+impl Binary {
+    /// Construct a new binary search method
+    pub fn new() -> Self {
+        Binary
+    }
+}
 
 /// Store the last set of bounding indices and learly search from the last known match. Effective
 /// for tables with slowly changing values.
@@ -25,13 +39,14 @@ impl CachedLinearCell {
     }
 }
 
-/// Determine search method dynamically at runtime
+/// Determine search method dynamically at runtime.
 pub enum RuntimeSearch {
     Linear(Linear),
     Binary(Binary),
     CachedLinearCell(CachedLinearCell),
 }
 
+/// Find the two bounding indices in a vector for interpolation.
 pub trait Search<Indep>
 where
     Indep: PartialOrd<Indep>,
