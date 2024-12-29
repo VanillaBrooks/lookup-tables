@@ -188,7 +188,7 @@ mod tests {
     {
         let x = vec![0., 1., 2., 3.];
         let y = vec![0., 1., 2., 3.];
-        let search = search::CachedLinearCell::new(last_index);
+        let search = search::CachedLinearCell::with_last_index(last_index);
         LookupTable1D::new(x, search, y).unwrap()
     }
 

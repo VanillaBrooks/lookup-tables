@@ -21,6 +21,7 @@ pub struct Axis<Indep, Search, LowerBound, UpperBound> {
     _upper_bound: PhantomData<UpperBound>,
 }
 
+/// Helper trait to extract information on an axis at compile time
 pub trait AxisImpl {
     type Indep;
     type Search;

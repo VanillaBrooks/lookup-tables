@@ -9,6 +9,7 @@ High performance & compile-time customizable lookup tables
 
 * [`LookupTable1D`] - Approximate `f(x)` given `x`
 * [`LookupTable2D`] - Approximate `f(x, y)` given `x`, `y`
+* [`LookupTable3D`] - Approximate `f(x, y, z)` given `x`, `y`, `z`
 
 ### Out-of-bounds behavior 
 
@@ -143,4 +144,54 @@ let x_0 = 1.2;
 let y_0 = 4.5;
 let output = table.lookup(x_0, y_0);
 float_eq::assert_float_eq!(output, analytical_f(x_0, y_0), abs <= 1e-10);
+```
+
+### Lookup Table 3D With Runtime-Selected Bounds
+
+If we need to approximate a function of three variables `f(x,y,z)` we can instead use [`LookupTable3D`]
+
+```rust
+use lookup_tables::{Axis, Linear, RuntimeSearch, Clamp, LookupTable3D};
+use std::f64::consts::PI;
+use ndarray::{Array1, Array3};
+
+let n = 10;
+
+fn analytical_f(x: f64, y: f64, z: f64) -> f64 {
+    y*(x-z).abs()
+}
+
+let x : Vec<f64> = ndarray::Array1::linspace(0.0, 5.0, n).to_vec();
+let y : Vec<f64> = x.clone();
+let z : Vec<f64> = x.clone();
+
+let mut f = ndarray::Array3::zeros((n, n, n));
+
+// populate `f` matrix with evaluations of `analytical_f`
+for i in 0..n {
+    for j in 0..n {
+        for k in 0..n {
+            f[[i,j,k]] = analytical_f(x[i], y[j], z[k]);
+        }
+    }
+}
+
+
+// Clamp at both ends of the axis, linear search for our values
+type MyAxisLinear = Axis<f64, Linear, Clamp, Clamp>;
+
+type MyAxisRuntime = Axis<f64, RuntimeSearch, Clamp, Clamp>;
+
+// A 3d table has three axes and a dependent variable. The first axes uses a runtime-selected 
+// search method. The second and third axes use a linear search with clamping at both bounds.
+type MyTable = LookupTable3D<MyAxisRuntime, MyAxisLinear, MyAxisLinear, f64>;
+
+// the runtime search we selected for this example was binary search
+let table = MyTable::new(x, RuntimeSearch::binary(), y, Linear::new(), z, Linear::new(), f).unwrap();
+
+let x_0 = 1.2;
+let y_0 = 4.5;
+let z_0 = 2.0;
+let output = table.lookup(x_0, y_0, z_0);
+float_eq::assert_float_eq!(output, analytical_f(x_0, y_0, z_0), abs <= 1e-10);
 ```
