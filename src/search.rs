@@ -32,7 +32,11 @@ pub struct CachedLinearCell {
 }
 
 impl CachedLinearCell {
-    pub fn new(last_index: usize) -> Self {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_last_index(last_index: usize) -> Self {
         Self {
             last_lower_idx: last_index.into(),
         }
@@ -44,6 +48,20 @@ pub enum RuntimeSearch {
     Linear(Linear),
     Binary(Binary),
     CachedLinearCell(CachedLinearCell),
+}
+
+impl RuntimeSearch {
+    pub fn linear() -> Self {
+        RuntimeSearch::Linear(Linear::new())
+    }
+
+    pub fn binary() -> Self {
+        RuntimeSearch::Binary(Binary::new())
+    }
+
+    pub fn cached_linear_cell() -> Self {
+        RuntimeSearch::CachedLinearCell(CachedLinearCell::new())
+    }
 }
 
 /// Find the two bounding indices in a vector for interpolation.
@@ -253,7 +271,7 @@ mod tests {
     fn cached_linear_low() {
         for starting_index in 0..6 {
             dbg!(starting_index);
-            let cached_linear = CachedLinearCell::new(starting_index);
+            let cached_linear = CachedLinearCell::with_last_index(starting_index);
             let x = data();
             let output = cached_linear.search(1, x.as_slice());
             dbg!(&output);
@@ -267,7 +285,7 @@ mod tests {
     fn cached_linear_inbounds() {
         for starting_index in 0..6 {
             dbg!(starting_index);
-            let cached_linear = CachedLinearCell::new(starting_index);
+            let cached_linear = CachedLinearCell::with_last_index(starting_index);
             let x = data();
             let output = cached_linear.search(5, x.as_slice());
             dbg!(&output);
@@ -281,7 +299,7 @@ mod tests {
     fn cached_linear_high() {
         for starting_index in 0..6 {
             dbg!(starting_index);
-            let cached_linear = CachedLinearCell::new(starting_index);
+            let cached_linear = CachedLinearCell::with_last_index(starting_index);
             let x = data();
             let output = cached_linear.search(9, x.as_slice());
             dbg!(output);
